@@ -1,4 +1,3 @@
-
 // Exercise type definition
 export interface Exercise {
   id: string;
@@ -24,6 +23,7 @@ export interface WorkoutExercise {
 // Complete workout definition
 export interface Workout {
   id: string;
+  name: string; // Added workout name field
   studentName: string;
   days: WorkoutDay[];
   createdAt: string;
@@ -104,6 +104,11 @@ export const saveWorkout = (workout: Workout): void => {
   if (!workout.id) {
     workout.id = crypto.randomUUID();
     workout.createdAt = new Date().toISOString();
+  }
+  
+  // If no workout name is provided, create a default one
+  if (!workout.name || workout.name.trim() === '') {
+    workout.name = `Treino de ${workout.studentName}`;
   }
   
   const existingIndex = workouts.findIndex(w => w.id === workout.id);
@@ -192,7 +197,7 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Treino de ${workout.studentName} - ${day}</title>
+      <title>${workout.name} - ${workout.studentName} - ${day}</title>
       <style>
         body {
           font-family: Arial, sans-serif;
@@ -242,8 +247,8 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
       </style>
     </head>
     <body>
-      <h1>Treino de ${workout.studentName}</h1>
-      <h2>${getDayName(day)}</h2>
+      <h1>${workout.name}</h1>
+      <h2>${workout.studentName} - ${getDayName(day)}</h2>
       
       <div class="exercises">
         ${exercisesHTML}
@@ -307,4 +312,38 @@ export const downloadHTML = (html: string, filename: string): void => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+};
+
+// Download all workout days
+export const downloadAllWorkoutDays = (workout: Workout, exercises: Exercise[]): Promise<void> => {
+  return new Promise((resolve) => {
+    const days = workout.days;
+    
+    // Create a delay between downloads to prevent browser blocking
+    days.forEach((day, index) => {
+      setTimeout(() => {
+        try {
+          const html = generateWorkoutHTML(workout, day.day, exercises);
+          const dayName = day.day.charAt(0).toUpperCase() + day.day.slice(1);
+          const filename = `${workout.name.replace(/\s+/g, '_')}_${workout.studentName.replace(/\s+/g, '_')}_${dayName}.html`;
+          
+          downloadHTML(html, filename);
+          
+          if (index === days.length - 1) {
+            resolve();
+          }
+        } catch (error) {
+          console.error("Error downloading workout day:", error);
+          if (index === days.length - 1) {
+            resolve();
+          }
+        }
+      }, index * 500); // 500ms delay between downloads
+    });
+    
+    // If there are no days, just resolve
+    if (days.length === 0) {
+      resolve();
+    }
+  });
 };

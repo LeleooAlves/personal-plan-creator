@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Download } from 'lucide-react';
-import { getAllWorkouts, downloadHTML, generateWorkoutHTML, getAllExercises, deleteWorkout } from '@/utils/localStorage';
+import { getAllWorkouts, downloadHTML, generateWorkoutHTML, getAllExercises, deleteWorkout, downloadAllWorkoutDays } from '@/utils/localStorage';
 import { Workout } from '@/utils/localStorage';
 import { useToast } from '@/hooks/use-toast';
 import WorkoutForm from '@/components/WorkoutForm';
@@ -34,19 +34,43 @@ const WorkoutsPage = () => {
       const exercises = getAllExercises();
       const html = generateWorkoutHTML(workout, day, exercises);
       const dayName = day.charAt(0).toUpperCase() + day.slice(1);
-      const filename = `Treino_${workout.studentName.replace(/\s+/g, '_')}_${dayName}.html`;
+      const filename = `${workout.name.replace(/\s+/g, '_')}_${workout.studentName.replace(/\s+/g, '_')}_${dayName}.html`;
       
       downloadHTML(html, filename);
       
       toast({
         title: "Download iniciado!",
-        description: `O treino de ${workout.studentName} (${dayName}) foi gerado com sucesso.`,
+        description: `O treino ${workout.name} de ${workout.studentName} (${dayName}) foi gerado com sucesso.`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro ao gerar arquivo",
         description: "Ocorreu um problema ao criar o arquivo HTML.",
+      });
+    }
+  };
+  
+  const handleDownloadAll = async (workout: Workout) => {
+    try {
+      const exercises = getAllExercises();
+      
+      toast({
+        title: "Preparando downloads...",
+        description: `Iniciando download de ${workout.days.length} arquivos de treino.`,
+      });
+      
+      await downloadAllWorkoutDays(workout, exercises);
+      
+      toast({
+        title: "Downloads concluídos!",
+        description: `Todos os treinos de ${workout.studentName} foram gerados com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar arquivos",
+        description: "Ocorreu um problema ao criar os arquivos HTML.",
       });
     }
   };
@@ -119,9 +143,9 @@ const WorkoutsPage = () => {
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-xl">{workout.studentName}</CardTitle>
+                        <CardTitle className="text-xl">{workout.name || `Treino de ${workout.studentName}`}</CardTitle>
                         <CardDescription>
-                          Criado em {formatDate(workout.createdAt)}
+                          {workout.studentName} - Criado em {formatDate(workout.createdAt)}
                         </CardDescription>
                       </div>
                       <Button 
@@ -163,6 +187,18 @@ const WorkoutsPage = () => {
                       </div>
                     </div>
                   </CardContent>
+                  
+                  <CardFooter className="pt-2 flex justify-center">
+                    <Button 
+                      variant="default"
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => handleDownloadAll(workout)}
+                    >
+                      <Download size={16} className="mr-2" />
+                      Baixar Todos os Treinos
+                    </Button>
+                  </CardFooter>
                 </Card>
               ))}
             </div>

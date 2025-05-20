@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, Edit, Trash2 } from 'lucide-react';
-import { Exercise, getAllExercises, saveExercise, deleteExercise, getEmbedUrl } from '@/utils/localStorage';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ExternalLink, Edit, Trash2, Upload, FileVideo } from 'lucide-react';
+import { Exercise, getAllExercises, saveExercise, deleteExercise, getEmbedUrl, fileToBase64 } from '@/utils/localStorage';
 import { useToast } from '@/hooks/use-toast';
 
 const ExercisesPage = () => {
@@ -18,8 +19,10 @@ const ExercisesPage = () => {
   const [formData, setFormData] = useState<Omit<Exercise, 'id'>>({
     name: '',
     description: '',
-    videoUrl: ''
+    videoUrl: '',
+    videoFile: undefined
   });
+  const [videoUploadType, setVideoUploadType] = useState<'url' | 'file'>('url');
   const { toast } = useToast();
   
   useEffect(() => {
@@ -39,13 +42,50 @@ const ExercisesPage = () => {
     }));
   };
   
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      // Check file size (limit to 30MB)
+      if (file.size > 30 * 1024 * 1024) {
+        toast({
+          variant: "destructive",
+          title: "Arquivo muito grande",
+          description: "O tamanho máximo permitido é 30MB."
+        });
+        return;
+      }
+      
+      const base64Video = await fileToBase64(file);
+      setFormData(prev => ({
+        ...prev,
+        videoFile: base64Video,
+        videoUrl: '' // Clear URL when file is uploaded
+      }));
+      
+      toast({
+        title: "Vídeo carregado",
+        description: "O vídeo foi carregado com sucesso."
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar vídeo",
+        description: "Não foi possível processar o arquivo."
+      });
+    }
+  };
+  
   const handleEdit = (exercise: Exercise) => {
     setEditingExercise(exercise);
     setFormData({
       name: exercise.name,
       description: exercise.description,
-      videoUrl: exercise.videoUrl
+      videoUrl: exercise.videoUrl || '',
+      videoFile: exercise.videoFile
     });
+    setVideoUploadType(exercise.videoFile ? 'file' : 'url');
     setIsDialogOpen(true);
   };
   
@@ -72,9 +112,22 @@ const ExercisesPage = () => {
       return;
     }
     
+    // Validate that at least one video source is provided if video tab is active
+    if (videoUploadType === 'url' && !formData.videoUrl.trim()) {
+      toast({
+        variant: "destructive",
+        title: "URL do vídeo obrigatória",
+        description: "Por favor, informe a URL do vídeo ou faça upload de um arquivo."
+      });
+      return;
+    }
+    
     const exerciseToSave: Exercise = {
       id: editingExercise?.id || '',
-      ...formData
+      ...formData,
+      // Clear the unused video field based on upload type
+      videoUrl: videoUploadType === 'url' ? formData.videoUrl : '',
+      videoFile: videoUploadType === 'file' ? formData.videoFile : undefined
     };
     
     saveExercise(exerciseToSave);
@@ -92,8 +145,10 @@ const ExercisesPage = () => {
     setFormData({
       name: '',
       description: '',
-      videoUrl: ''
+      videoUrl: '',
+      videoFile: undefined
     });
+    setVideoUploadType('url');
     setEditingExercise(null);
   };
   
@@ -104,20 +159,28 @@ const ExercisesPage = () => {
     }
   };
   
-  const getVideoThumbnail = (url: string) => {
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-      const match = url.match(regExp);
-      const videoId = match && match[2].length === 11 ? match[2] : null;
-      
-      return videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : '';
-    } else if (url.includes('vimeo.com')) {
-      // For Vimeo, we'd need an API call which is beyond scope here
-      // Just return a placeholder
-      return 'https://via.placeholder.com/640x360?text=Vimeo+Video';
+  const getVideoThumbnail = (exercise: Exercise) => {
+    if (exercise.videoFile) {
+      return exercise.videoFile;
+    } else if (exercise.videoUrl) {
+      if (exercise.videoUrl.includes('youtube.com') || exercise.videoUrl.includes('youtu.be')) {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = exercise.videoUrl.match(regExp);
+        const videoId = match && match[2].length === 11 ? match[2] : null;
+        
+        return videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : '';
+      } else if (exercise.videoUrl.includes('vimeo.com')) {
+        // For Vimeo, we'd need an API call which is beyond scope here
+        // Just return a placeholder
+        return 'https://via.placeholder.com/640x360?text=Vimeo+Video';
+      }
     }
     
-    return 'https://via.placeholder.com/640x360?text=Video';
+    return 'https://via.placeholder.com/640x360?text=No+Video';
+  };
+  
+  const hasVideo = (exercise: Exercise): boolean => {
+    return Boolean(exercise.videoUrl || exercise.videoFile);
   };
   
   return (
@@ -169,18 +232,68 @@ const ExercisesPage = () => {
                   />
                 </div>
                 
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="videoUrl" className="text-right">
-                    URL do Vídeo
-                  </Label>
-                  <Input
-                    id="videoUrl"
-                    name="videoUrl"
-                    value={formData.videoUrl}
-                    onChange={handleInputChange}
-                    className="col-span-3"
-                    placeholder="YouTube ou Vimeo URL"
-                  />
+                <div className="space-y-2">
+                  <Label className="block text-center mb-2">Vídeo</Label>
+                  <Tabs value={videoUploadType} onValueChange={(val) => setVideoUploadType(val as 'url' | 'file')}>
+                    <TabsList className="grid grid-cols-2 w-full">
+                      <TabsTrigger value="url">URL (YouTube/Vimeo)</TabsTrigger>
+                      <TabsTrigger value="file">Upload de Arquivo</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="url" className="space-y-4 pt-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="videoUrl" className="text-right">
+                          URL
+                        </Label>
+                        <Input
+                          id="videoUrl"
+                          name="videoUrl"
+                          value={formData.videoUrl}
+                          onChange={handleInputChange}
+                          className="col-span-3"
+                          placeholder="YouTube ou Vimeo URL"
+                        />
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="file" className="space-y-4 pt-4">
+                      <div className="grid items-center gap-4">
+                        <Label htmlFor="videoFile" className="text-center">
+                          Arquivo de Vídeo
+                        </Label>
+                        <div className="flex items-center justify-center">
+                          <Label htmlFor="videoFile" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <Upload className="w-8 h-8 mb-2 text-gray-500" />
+                              <p className="mb-2 text-sm text-gray-500">
+                                <span className="font-semibold">Clique para fazer upload</span> ou arraste o arquivo
+                              </p>
+                              <p className="text-xs text-gray-500">MP4, WebM, Ogg (Máx. 30MB)</p>
+                            </div>
+                            <Input 
+                              id="videoFile" 
+                              type="file"
+                              accept="video/mp4,video/webm,video/ogg"
+                              className="hidden"
+                              onChange={handleFileChange}
+                            />
+                          </Label>
+                        </div>
+                        
+                        {formData.videoFile && (
+                          <div className="mt-2">
+                            <Label className="block text-center mb-2">Vídeo carregado:</Label>
+                            <div className="flex justify-center">
+                              <div className="flex items-center space-x-2 p-2 bg-green-50 text-green-700 rounded">
+                                <FileVideo size={20} />
+                                <span>Vídeo pronto para upload</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
               
@@ -210,24 +323,32 @@ const ExercisesPage = () => {
                 )}
               </CardHeader>
               
-              {exercise.videoUrl && (
+              {hasVideo(exercise) && (
                 <CardContent className="p-0">
                   <div className="aspect-video bg-black relative">
-                    <a
-                      href={exercise.videoUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="absolute inset-0 flex items-center justify-center"
-                    >
-                      <img
-                        src={getVideoThumbnail(exercise.videoUrl)}
-                        alt={exercise.name}
-                        className="w-full h-full object-cover"
+                    {exercise.videoFile ? (
+                      <video 
+                        src={exercise.videoFile} 
+                        controls 
+                        className="w-full h-full object-contain"
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <ExternalLink className="text-white w-10 h-10" />
-                      </div>
-                    </a>
+                    ) : (
+                      <a
+                        href={exercise.videoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute inset-0 flex items-center justify-center"
+                      >
+                        <img
+                          src={getVideoThumbnail(exercise)}
+                          alt={exercise.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                          <ExternalLink className="text-white w-10 h-10" />
+                        </div>
+                      </a>
+                    )}
                   </div>
                 </CardContent>
               )}

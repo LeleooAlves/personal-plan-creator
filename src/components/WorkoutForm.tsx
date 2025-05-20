@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +25,7 @@ const DAYS_OF_WEEK = [
 ];
 
 const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
+  const [workoutName, setWorkoutName] = useState('');
   const [studentName, setStudentName] = useState('');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -147,6 +147,7 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
     
     const workout: Workout = {
       id: '',
+      name: workoutName.trim(),
       studentName,
       days,
       createdAt: new Date().toISOString()
@@ -156,6 +157,7 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
     saveWorkout(workout);
     
     // Reset form and notify parent
+    setWorkoutName('');
     setStudentName('');
     setSelectedDays([]);
     setActiveTab('');
@@ -173,6 +175,16 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="workoutName">Nome do Treino</Label>
+          <Input
+            id="workoutName"
+            value={workoutName}
+            onChange={(e) => setWorkoutName(e.target.value)}
+            placeholder="Ex: Treino de Força, Hipertrofia, etc."
+          />
+        </div>
+        
         <div className="space-y-2">
           <Label htmlFor="studentName">Nome do Aluno</Label>
           <Input
