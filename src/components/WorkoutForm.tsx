@@ -193,16 +193,15 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
             {DAYS_OF_WEEK.map((day) => (
-              <div key={day.id} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-accent">
-                <Checkbox
-                  id={`day-${day.id}`}
-                  checked={selectedDays.includes(day.id)}
-                  onCheckedChange={() => handleDayToggle(day.id)}
-                />
-                <Label htmlFor={`day-${day.id}`} className="text-sm cursor-pointer flex-grow">
-                  {day.label}
-                </Label>
-              </div>
+              <Button
+                key={day.id}
+                type="button"
+                variant={selectedDays.includes(day.id) ? "default" : "outline"}
+                className="flex justify-center w-full h-16 sm:h-14"
+                onClick={() => handleDayToggle(day.id)}
+              >
+                {day.label}
+              </Button>
             ))}
           </div>
         </div>

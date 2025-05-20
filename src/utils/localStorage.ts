@@ -5,6 +5,7 @@ export interface Exercise {
   name: string;
   description: string;
   videoUrl: string;
+  videoFile?: string; // Base64 encoded video file
 }
 
 // Workout day configuration
@@ -137,6 +138,16 @@ export const saveProfile = (profile: Profile): void => {
   localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
 };
 
+// Convert File to base64
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
 // HTML Generation
 export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Exercise[]): string => {
   const profile = getProfile();
@@ -158,9 +169,16 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
       <h3>${exercise?.name || 'Unknown Exercise'}</h3>
       <p>${exercise?.sets} sets x ${exercise?.reps} reps</p>
       <p>${exercise?.description || ''}</p>
-      ${exercise?.videoUrl ? `
+      ${exercise?.videoFile ? `
         <div class="video-container">
-          <iframe width="100%" height="200" 
+          <video controls class="workout-video">
+            <source src="${exercise.videoFile}" type="video/mp4">
+            Seu navegador não suporta a reprodução de vídeos.
+          </video>
+        </div>
+      ` : exercise?.videoUrl ? `
+        <div class="video-container">
+          <iframe class="workout-video"
             src="${getEmbedUrl(exercise.videoUrl)}"
             frameborder="0" allowfullscreen></iframe>
         </div>
@@ -210,17 +228,16 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
         }
         .video-container {
           position: relative;
-          padding-bottom: 56.25%; /* 16:9 */
           height: 0;
           overflow: hidden;
           margin: 15px 0;
-        }
-        .video-container iframe {
-          position: absolute;
-          top: 0;
-          left: 0;
+          max-width: 500px;
           width: 100%;
-          height: 100%;
+        }
+        .workout-video {
+          width: 100%;
+          max-height: 280px;
+          object-fit: contain;
         }
       </style>
     </head>
