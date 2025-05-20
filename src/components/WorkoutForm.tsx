@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getAllExercises, saveWorkout, Exercise, Workout, WorkoutDay } from '@/utils/localStorage';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface WorkoutFormProps {
   onWorkoutCreated: () => void;
@@ -30,6 +31,7 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [activeTab, setActiveTab] = useState('');
   const [workoutPlan, setWorkoutPlan] = useState<Record<string, Array<{ exerciseId: string; sets: number; reps: number }>>>({});
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     // Load exercises from localStorage
@@ -183,16 +185,21 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
         </div>
         
         <div className="space-y-3">
-          <Label>Dias de Treino</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2">
+          <div className="flex justify-between items-center">
+            <Label>Dias de Treino</Label>
+            <span className="text-sm text-muted-foreground">
+              {selectedDays.length} de 7 dias selecionados
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
             {DAYS_OF_WEEK.map((day) => (
-              <div key={day.id} className="flex items-center space-x-2">
+              <div key={day.id} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-accent">
                 <Checkbox
                   id={`day-${day.id}`}
                   checked={selectedDays.includes(day.id)}
                   onCheckedChange={() => handleDayToggle(day.id)}
                 />
-                <Label htmlFor={`day-${day.id}`} className="text-sm cursor-pointer">
+                <Label htmlFor={`day-${day.id}`} className="text-sm cursor-pointer flex-grow">
                   {day.label}
                 </Label>
               </div>
@@ -205,20 +212,22 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
         <Card>
           <CardContent className="pt-6">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-4 overflow-x-auto flex flex-nowrap w-full justify-start">
-                {selectedDays.map(day => {
-                  const dayLabel = DAYS_OF_WEEK.find(d => d.id === day)?.label || day;
-                  return (
-                    <TabsTrigger 
-                      key={day} 
-                      value={day}
-                      className="flex-shrink-0"
-                    >
-                      {dayLabel}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
+              <div className="relative">
+                <TabsList className="mb-4 overflow-x-auto flex flex-nowrap w-full justify-start pb-1">
+                  {selectedDays.map(day => {
+                    const dayLabel = DAYS_OF_WEEK.find(d => d.id === day)?.label || day;
+                    return (
+                      <TabsTrigger 
+                        key={day} 
+                        value={day}
+                        className="flex-shrink-0"
+                      >
+                        {dayLabel}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </div>
               
               {selectedDays.map(day => (
                 <TabsContent key={day} value={day} className="space-y-4">
@@ -242,8 +251,8 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
                   ) : (
                     <div className="space-y-4">
                       {workoutPlan[day].map((exercise, index) => (
-                        <div key={index} className="grid grid-cols-12 gap-2 items-end">
-                          <div className="col-span-12 sm:col-span-6">
+                        <div key={index} className={`grid gap-3 p-3 border rounded-md ${isMobile ? 'grid-cols-1' : 'grid-cols-12 items-end'}`}>
+                          <div className={isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-6'}>
                             <Label htmlFor={`exercise-${day}-${index}`}>Exercício</Label>
                             <Select
                               value={exercise.exerciseId}
@@ -262,29 +271,31 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
                             </Select>
                           </div>
                           
-                          <div className="col-span-6 sm:col-span-2">
-                            <Label htmlFor={`sets-${day}-${index}`}>Séries</Label>
-                            <Input
-                              id={`sets-${day}-${index}`}
-                              type="number"
-                              min="1"
-                              value={exercise.sets}
-                              onChange={(e) => handleExerciseChange(day, index, 'sets', parseInt(e.target.value) || 1)}
-                            />
+                          <div className={`grid grid-cols-2 gap-3 ${isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-4'}`}>
+                            <div>
+                              <Label htmlFor={`sets-${day}-${index}`}>Séries</Label>
+                              <Input
+                                id={`sets-${day}-${index}`}
+                                type="number"
+                                min="1"
+                                value={exercise.sets}
+                                onChange={(e) => handleExerciseChange(day, index, 'sets', parseInt(e.target.value) || 1)}
+                              />
+                            </div>
+                            
+                            <div>
+                              <Label htmlFor={`reps-${day}-${index}`}>Repetições</Label>
+                              <Input
+                                id={`reps-${day}-${index}`}
+                                type="number"
+                                min="1"
+                                value={exercise.reps}
+                                onChange={(e) => handleExerciseChange(day, index, 'reps', parseInt(e.target.value) || 1)}
+                              />
+                            </div>
                           </div>
                           
-                          <div className="col-span-6 sm:col-span-2">
-                            <Label htmlFor={`reps-${day}-${index}`}>Repetições</Label>
-                            <Input
-                              id={`reps-${day}-${index}`}
-                              type="number"
-                              min="1"
-                              value={exercise.reps}
-                              onChange={(e) => handleExerciseChange(day, index, 'reps', parseInt(e.target.value) || 1)}
-                            />
-                          </div>
-                          
-                          <div className="col-span-12 sm:col-span-2 flex justify-end">
+                          <div className={isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-2'}>
                             <Button
                               type="button"
                               variant="destructive"
@@ -307,7 +318,7 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
       )}
       
       <div className="flex justify-end">
-        <Button type="submit" className="w-full md:w-auto">
+        <Button type="submit" className="w-full sm:w-auto">
           Salvar Treino
         </Button>
       </div>

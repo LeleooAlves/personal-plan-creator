@@ -10,11 +10,13 @@ import { getAllWorkouts, downloadHTML, generateWorkoutHTML, getAllExercises, del
 import { Workout } from '@/utils/localStorage';
 import { useToast } from '@/hooks/use-toast';
 import WorkoutForm from '@/components/WorkoutForm';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const WorkoutsPage = () => {
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [activeTab, setActiveTab] = useState('list');
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     loadWorkouts();
@@ -111,9 +113,9 @@ const WorkoutsPage = () => {
               <Button onClick={() => setActiveTab('create')}>Criar Novo Treino</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {workouts.map((workout) => (
-                <Card key={workout.id} className="overflow-hidden">
+                <Card key={workout.id} className="overflow-hidden h-full flex flex-col">
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div>
@@ -132,7 +134,7 @@ const WorkoutsPage = () => {
                     </div>
                   </CardHeader>
                   
-                  <CardContent>
+                  <CardContent className="flex-grow">
                     <div className="flex flex-wrap gap-2 my-2">
                       {workout.days.map((day) => (
                         <Badge key={day.day} variant="outline">

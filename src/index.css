@@ -84,4 +84,30 @@
   .form-group {
     @apply mb-4;
   }
+  
+  /* Melhorias de responsividade */
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+  
+  .responsive-card {
+    @apply flex flex-col h-full border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200;
+  }
+  
+  .scroll-container {
+    @apply overflow-x-auto pb-2 -mx-4 px-4;
+    scrollbar-width: thin;
+  }
+  
+  .scroll-container::-webkit-scrollbar {
+    @apply h-1.5;
+  }
+  
+  .scroll-container::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  
+  .scroll-container::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
 }
