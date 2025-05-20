@@ -176,7 +176,7 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
       <p>${exercise?.description || ''}</p>
       ${exercise?.videoFile ? `
         <div class="video-container">
-          <video controls class="workout-video">
+          <video controls playsinline class="workout-video">
             <source src="${exercise.videoFile}" type="video/mp4">
             Seu navegador não suporta a reprodução de vídeos.
           </video>
@@ -185,7 +185,7 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
         <div class="video-container">
           <iframe class="workout-video"
             src="${getEmbedUrl(exercise.videoUrl)}"
-            frameborder="0" allowfullscreen></iframe>
+            frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
         </div>
       ` : ''}
     </div>
@@ -213,6 +213,16 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
         h2 {
           color: #333;
         }
+        .trainer-info {
+          background: #f0f9ff;
+          padding: 15px;
+          margin-bottom: 20px;
+          border-radius: 8px;
+          border-left: 4px solid #1E90FF;
+        }
+        .trainer-info p {
+          margin: 5px 0;
+        }
         .exercise {
           background: #f9f9f9;
           padding: 15px;
@@ -224,41 +234,40 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
           margin-top: 0;
           color: #1E90FF;
         }
-        .footer {
-          margin-top: 30px;
-          padding-top: 10px;
-          border-top: 1px solid #ddd;
-          font-size: 0.9em;
-          color: #666;
-        }
         .video-container {
           position: relative;
-          height: 0;
           overflow: hidden;
           margin: 15px 0;
-          max-width: 500px;
+          max-width: 100%;
           width: 100%;
+          aspect-ratio: 16/9;
         }
         .workout-video {
           width: 100%;
-          max-height: 280px;
+          height: 100%;
           object-fit: contain;
+          max-height: 240px;
+        }
+        @media (max-width: 768px) {
+          .workout-video {
+            max-height: 200px;
+          }
         }
       </style>
     </head>
     <body>
+      <div class="trainer-info">
+        <p><strong>${profile.name}</strong></p>
+        <p>Contato: ${profile.contact}</p>
+        <p>CREF: ${profile.cref}</p>
+        <p>Idade: ${profile.age}</p>
+      </div>
+      
       <h1>${workout.name}</h1>
       <h2>${workout.studentName} - ${getDayName(day)}</h2>
       
       <div class="exercises">
         ${exercisesHTML}
-      </div>
-      
-      <div class="footer">
-        <p><strong>${profile.name}</strong></p>
-        <p>Contato: ${profile.contact}</p>
-        <p>CREF: ${profile.cref}</p>
-        <p>Idade: ${profile.age}</p>
       </div>
     </body>
     </html>

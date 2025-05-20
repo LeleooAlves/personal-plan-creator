@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -47,12 +46,12 @@ const ExercisesPage = () => {
     if (!file) return;
     
     try {
-      // Check file size (limit to 30MB)
-      if (file.size > 30 * 1024 * 1024) {
+      // Check file size (limit to 10MB to prevent localStorage quota issues)
+      if (file.size > 10 * 1024 * 1024) {
         toast({
           variant: "destructive",
           title: "Arquivo muito grande",
-          description: "O tamanho máximo permitido é 30MB."
+          description: "O tamanho máximo permitido é 10MB para evitar problemas de armazenamento."
         });
         return;
       }
@@ -112,33 +111,31 @@ const ExercisesPage = () => {
       return;
     }
     
-    // Validate that at least one video source is provided if video tab is active
-    if (videoUploadType === 'url' && !formData.videoUrl.trim()) {
+    try {
+      const exerciseToSave: Exercise = {
+        id: editingExercise?.id || '',
+        ...formData,
+        // Clear the unused video field based on upload type
+        videoUrl: videoUploadType === 'url' ? formData.videoUrl : '',
+        videoFile: videoUploadType === 'file' ? formData.videoFile : undefined
+      };
+      
+      saveExercise(exerciseToSave);
+      loadExercises();
+      resetForm();
+      setIsDialogOpen(false);
+      
+      toast({
+        title: editingExercise ? "Exercício atualizado" : "Exercício adicionado",
+        description: `O exercício foi ${editingExercise ? 'atualizado' : 'adicionado'} com sucesso.`
+      });
+    } catch (error) {
       toast({
         variant: "destructive",
-        title: "URL do vídeo obrigatória",
-        description: "Por favor, informe a URL do vídeo ou faça upload de um arquivo."
+        title: "Erro ao salvar exercício",
+        description: "Ocorreu um problema ao salvar. O arquivo pode ser muito grande para o armazenamento local."
       });
-      return;
     }
-    
-    const exerciseToSave: Exercise = {
-      id: editingExercise?.id || '',
-      ...formData,
-      // Clear the unused video field based on upload type
-      videoUrl: videoUploadType === 'url' ? formData.videoUrl : '',
-      videoFile: videoUploadType === 'file' ? formData.videoFile : undefined
-    };
-    
-    saveExercise(exerciseToSave);
-    loadExercises();
-    resetForm();
-    setIsDialogOpen(false);
-    
-    toast({
-      title: editingExercise ? "Exercício atualizado" : "Exercício adicionado",
-      description: `O exercício foi ${editingExercise ? 'atualizado' : 'adicionado'} com sucesso.`
-    });
   };
   
   const resetForm = () => {
