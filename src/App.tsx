@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,6 +13,7 @@ import ExercisesPage from "./pages/ExercisesPage";
 import ProfilePage from "./pages/ProfilePage";
 import MainLayout from "./components/MainLayout";
 import NotFound from "./pages/NotFound";
+import WorkoutDisplayPage from "./pages/WorkoutDisplayPage";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +51,9 @@ const AppContent = () => {
         <Route path="/exercises" element={<ExercisesPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
+      
+      {/* New route for displaying individual workouts */}
+      <Route path="/treinos/:workoutId/:day" element={<WorkoutDisplayPage />} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>
