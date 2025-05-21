@@ -32,46 +32,67 @@ const WorkoutsPage = () => {
     const baseUrl = 'https://treinos-wine.vercel.app';
     const workoutLink = `${baseUrl}/treinos/${workout.id}/${day}`;
     
-    navigator.clipboard.writeText(workoutLink).then(() => {
-      toast({
-        title: "Link do treino gerado!",
-        description: `Link copiado: ${workoutLink}`,
-      });
-    }).catch(err => {
-      console.error('Falha ao copiar link: ', err);
-      toast({
-        variant: "destructive",
-        title: "Erro ao gerar link",
-        description: `Não foi possível copiar o link. Copie manualmente: ${workoutLink}`,
-      });
+    // Get exercises to generate HTML
+    const exercises = getAllExercises();
+    const htmlContent = generateWorkoutHTML(workout, day, exercises);
+
+    // Create a Blob and a URL for the HTML content
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a temporary link element and trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${workout.studentName}_${day.toLowerCase()}.html`; // Suggest a filename
+    document.body.appendChild(link); // Required for Firefox
+    link.click();
+
+    // Clean up by revoking the object URL and removing the link
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download iniciado!",
+      description: `Baixando arquivo para ${getDayTranslation(day)}.`,
     });
   };
   
   const handleGenerateAllLinks = (workout: Workout) => {
     toast({
-      title: "Gerando links para todos os dias...",
-      description: "Links serão copiados para a área de transferência e mostrados em notificações.",
+      title: "Gerando arquivos para todos os dias...",
+      description: "Os downloads serão iniciados em sequência.",
     });
+
+    const exercises = getAllExercises(); // Get exercises once
 
     workout.days.forEach((day, index) => {
       setTimeout(() => {
-        const baseUrl = 'https://treinos-wine.vercel.app';
-        const workoutLink = `${baseUrl}/treinos/${workout.id}/${day.day}`;
+        // const baseUrl = 'https://treinos-wine.vercel.app'; // Not needed for download
+        // const workoutLink = `${baseUrl}/treinos/${workout.id}/${day.day}`; // Not needed for download
         
-        navigator.clipboard.writeText(workoutLink).then(() => {
-          toast({
-            title: `Link para ${getDayTranslation(day.day)}`,
-            description: `Link copiado: ${workoutLink}`,
-          });
-        }).catch(err => {
-          console.error('Falha ao copiar link: ', err);
-          toast({
-            variant: "destructive",
-            title: `Erro ao gerar link para ${getDayTranslation(day.day)}`,
-            description: `Não foi possível copiar o link. Copie manualmente: ${workoutLink}`,
-          });
+        // Generate HTML content for the day
+        const htmlContent = generateWorkoutHTML(workout, day.day, exercises);
+
+        // Create a Blob and a URL for the HTML content
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+
+        // Create a temporary link element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${workout.studentName}_${day.day.toLowerCase()}.html`; // Suggest a filename
+        document.body.appendChild(link); // Required for Firefox
+        link.click();
+
+        // Clean up by revoking the object URL and removing the link
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: `Download de ${getDayTranslation(day.day)}`,
+          description: `Arquivo ${workout.studentName}_${day.day.toLowerCase()}.html baixado com sucesso.`, // Updated description
         });
-      }, index * 500);
+      }, index * 500); // Add a small delay between downloads
     });
   };
   
