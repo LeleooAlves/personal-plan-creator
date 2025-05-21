@@ -3,8 +3,9 @@ export interface Exercise {
   id: string;
   name: string;
   description: string;
-  videoUrl: string;
+  videoUrl?: string; // URL do YouTube ou Google Drive
   videoFile?: string; // Base64 encoded video file
+  videoType?: 'youtube' | 'drive' | 'file'; // Tipo do vídeo para melhor controle
 }
 
 // Workout day configuration
@@ -75,6 +76,17 @@ export const saveExercise = (exercise: Exercise): void => {
   if (!exercise.id) {
     exercise.id = crypto.randomUUID();
   }
+
+  // Determina o tipo do vídeo
+  if (exercise.videoUrl) {
+    if (exercise.videoUrl.includes('youtube.com') || exercise.videoUrl.includes('youtu.be')) {
+      exercise.videoType = 'youtube';
+    } else if (exercise.videoUrl.includes('drive.google.com')) {
+      exercise.videoType = 'drive';
+    }
+  } else if (exercise.videoFile) {
+    exercise.videoType = 'file';
+  }
   
   const existingIndex = exercises.findIndex(e => e.id === exercise.id);
   
@@ -84,7 +96,29 @@ export const saveExercise = (exercise: Exercise): void => {
     exercises.push(exercise);
   }
   
-  localStorage.setItem(STORAGE_KEYS.EXERCISES, JSON.stringify(exercises));
+  try {
+    localStorage.setItem(STORAGE_KEYS.EXERCISES, JSON.stringify(exercises));
+  } catch (error) {
+    // Se houver erro de armazenamento, tenta limpar alguns dados antigos
+    if (error instanceof Error && error.name === 'QuotaExceededError') {
+      // Remove vídeos em base64 antigos para liberar espaço
+      const cleanedExercises = exercises.map(ex => ({
+        ...ex,
+        videoFile: undefined // Remove apenas o arquivo de vídeo, mantendo URLs
+      }));
+      localStorage.setItem(STORAGE_KEYS.EXERCISES, JSON.stringify(cleanedExercises));
+      
+      // Tenta salvar novamente
+      if (existingIndex >= 0) {
+        cleanedExercises[existingIndex] = exercise;
+      } else {
+        cleanedExercises.push(exercise);
+      }
+      localStorage.setItem(STORAGE_KEYS.EXERCISES, JSON.stringify(cleanedExercises));
+    } else {
+      throw error;
+    }
+  }
 };
 
 export const deleteExercise = (id: string): void => {
@@ -174,7 +208,7 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
       <h3>${exercise?.name || 'Unknown Exercise'}</h3>
       <p>${exercise?.sets} sets x ${exercise?.reps} reps</p>
       <p>${exercise?.description || ''}</p>
-      ${exercise?.videoFile ? `
+      ${exercise?.videoType === 'file' && exercise?.videoFile ? `
         <div class="video-container">
           <video controls playsinline class="workout-video">
             <source src="${exercise.videoFile}" type="video/mp4">
@@ -185,8 +219,28 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
         <div class="video-container">
           <iframe class="workout-video"
             src="${getEmbedUrl(exercise.videoUrl)}"
-            frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen webkitallowfullscreen mozallowfullscreen playsinline
+            ></iframe>
+          <div class="video-fallback" style="text-align:center; margin-top:8px;">
+            <noscript>Seu navegador não suporta vídeos incorporados. <a href="${exercise.videoUrl}" target="_blank" rel="noopener noreferrer">Ver no YouTube</a></noscript>
+            <span style="display:block; font-size:13px; color:#888;">Se o vídeo não aparecer, <a href="${exercise.videoUrl}" target="_blank" rel="noopener noreferrer">clique aqui para abrir no YouTube</a>.</span>
+          </div>
         </div>
+        ${exercise?.videoType === 'youtube' ? `
+          <div class="video-links mt-2">
+            <a href="${exercise.videoUrl}" target="_blank" rel="noopener noreferrer" class="video-link">
+              Ver no YouTube
+            </a>
+          </div>
+        ` : exercise?.videoType === 'drive' ? `
+          <div class="video-links mt-2">
+            <a href="${exercise.videoUrl}" target="_blank" rel="noopener noreferrer" class="video-link">
+              Ver no Google Drive
+            </a>
+          </div>
+        ` : ''}
       ` : ''}
     </div>
   `).join('');
@@ -246,11 +300,27 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
           width: 100%;
           height: 100%;
           object-fit: contain;
-          max-height: 240px;
+          max-height: none; /* Remove o limite de altura */
+        }
+        .video-links {
+          text-align: center;
+        }
+        .video-link {
+          display: inline-block;
+          padding: 8px 16px;
+          background-color: #1E90FF;
+          color: white;
+          text-decoration: none;
+          border-radius: 4px;
+          margin: 5px;
+          transition: background-color 0.2s;
+        }
+        .video-link:hover {
+          background-color: #187bcd;
         }
         @media (max-width: 768px) {
           .workout-video {
-            max-height: 200px;
+            max-height: none; /* Remove o limite de altura em dispositivos móveis */
           }
         }
       </style>
@@ -274,7 +344,18 @@ export const generateWorkoutHTML = (workout: Workout, day: string, exercises: Ex
   `;
 };
 
-// Helper for YouTube/Vimeo embed URLs
+// Helper para URLs do Google Drive
+export const getGoogleDriveEmbedUrl = (url: string): string => {
+  if (!url.includes('drive.google.com')) return url;
+  
+  // Extrai o ID do arquivo do Google Drive
+  const fileIdMatch = url.match(/\/d\/(.*?)\/|id=(.*?)(&|$)/);
+  const fileId = fileIdMatch ? (fileIdMatch[1] || fileIdMatch[2]) : null;
+  
+  return fileId ? `https://drive.google.com/file/d/${fileId}/preview` : url;
+};
+
+// Atualiza a função getEmbedUrl para incluir suporte ao Google Drive
 export const getEmbedUrl = (url: string): string => {
   if (url.includes('youtube.com') || url.includes('youtu.be')) {
     // Extract YouTube video ID
@@ -290,9 +371,11 @@ export const getEmbedUrl = (url: string): string => {
     const videoId = match ? match[1] : null;
     
     return videoId ? `https://player.vimeo.com/video/${videoId}` : '';
+  } else if (url.includes('drive.google.com')) {
+    return getGoogleDriveEmbedUrl(url);
   }
   
-  return url; // Return as is if not YouTube or Vimeo
+  return url;
 };
 
 // Helper for day names

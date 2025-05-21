@@ -1,16 +1,26 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dumbbell, User, ClipboardList, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const MainLayout = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>('workouts');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -21,128 +31,164 @@ const MainLayout = () => {
     navigate('/');
   };
 
+  const NavItems = () => (
+    <>
+      <NavLink 
+        to="/workouts" 
+        className={({ isActive }) => 
+          cn(
+            "flex items-center px-4 py-3 rounded-md transition-colors",
+            isActive 
+              ? "bg-primary text-white" 
+              : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+          )
+        }
+        onClick={() => setActiveTab('workouts')}
+      >
+        <ClipboardList size={20} className="mr-3" />
+        <span>Treinos</span>
+      </NavLink>
+      
+      <NavLink 
+        to="/exercises" 
+        className={({ isActive }) => 
+          cn(
+            "flex items-center px-4 py-3 rounded-md transition-colors",
+            isActive 
+              ? "bg-primary text-white" 
+              : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+          )
+        }
+        onClick={() => setActiveTab('exercises')}
+      >
+        <Dumbbell size={20} className="mr-3" />
+        <span>Exercícios</span>
+      </NavLink>
+      
+      <NavLink 
+        to="/profile" 
+        className={({ isActive }) => 
+          cn(
+            "flex items-center px-4 py-3 rounded-md transition-colors",
+            isActive 
+              ? "bg-primary text-white" 
+              : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
+          )
+        }
+        onClick={() => setActiveTab('profile')}
+      >
+        <User size={20} className="mr-3" />
+        <span>Perfil</span>
+      </NavLink>
+    </>
+  );
+
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <header className="bg-black text-white p-4 flex justify-between items-center shadow-md">
-        <h1 className="text-xl font-bold">Personal Trainer</h1>
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={handleLogout}
-          className="text-white hover:bg-gray-800"
-        >
-          <LogOut size={20} />
-        </Button>
+      <header className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-bold">Personal Trainer</h1>
+          </div>
+          {!isMobile && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={handleLogout}
+            >
+              <LogOut size={20} />
+              <span className="sr-only">Sair</span>
+            </Button>
+          )}
+        </div>
       </header>
       
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl">
-        <Outlet />
-      </main>
+      <div className="flex flex-1">
+        {/* Desktop Sidebar */}
+        {!isMobile && (
+          <aside className="hidden md:flex w-64 flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex-1 p-6">
+              <nav className="space-y-2">
+                <NavItems />
+              </nav>
+            </div>
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+              <Button 
+                variant="ghost" 
+                onClick={handleLogout}
+                className="w-full justify-start"
+              >
+                <LogOut size={20} className="mr-3" />
+                <span>Sair</span>
+              </Button>
+            </div>
+          </aside>
+        )}
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-auto pb-16 md:pb-0">
+          <div className="container mx-auto px-4 py-6 max-w-7xl">
+            <Outlet />
+          </div>
+        </main>
+      </div>
       
-      {/* Bottom Navigation for Mobile */}
-      <nav className="bg-black text-white p-2 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] md:hidden">
-        <div className="flex justify-around">
-          <NavLink 
-            to="/workouts" 
-            className={({ isActive }) => 
-              `flex flex-col items-center py-2 px-4 rounded-md ${
-                isActive ? 'text-primary' : 'text-white hover:text-primary'
-              }`
-            }
-            onClick={() => setActiveTab('workouts')}
-          >
-            <ClipboardList size={24} />
-            <span className="text-xs mt-1">Treinos</span>
-          </NavLink>
-          
-          <NavLink 
-            to="/exercises" 
-            className={({ isActive }) => 
-              `flex flex-col items-center py-2 px-4 rounded-md ${
-                isActive ? 'text-primary' : 'text-white hover:text-primary'
-              }`
-            }
-            onClick={() => setActiveTab('exercises')}
-          >
-            <Dumbbell size={24} />
-            <span className="text-xs mt-1">Exercícios</span>
-          </NavLink>
-          
-          <NavLink 
-            to="/profile" 
-            className={({ isActive }) => 
-              `flex flex-col items-center py-2 px-4 rounded-md ${
-                isActive ? 'text-primary' : 'text-white hover:text-primary'
-              }`
-            }
-            onClick={() => setActiveTab('profile')}
-          >
-            <User size={24} />
-            <span className="text-xs mt-1">Perfil</span>
-          </NavLink>
-        </div>
-      </nav>
-      
-      {/* Sidebar for Desktop */}
-      <div className="hidden md:block fixed left-0 top-0 h-full w-64 bg-black text-white">
-        <div className="p-6">
-          <h1 className="text-2xl font-bold mb-8">Personal Trainer</h1>
-          
-          <nav className="space-y-2">
+      {/* Mobile Bottom Navigation */}
+      {isMobile && (
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 md:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+          <div className="flex justify-around items-center h-16">
             <NavLink 
               to="/workouts" 
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 rounded-md ${
-                  isActive ? 'bg-primary text-white' : 'text-white hover:bg-gray-800'
-                }`
+                cn(
+                  "flex flex-col items-center justify-center py-2 px-4 h-full",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                )
               }
+              onClick={() => setActiveTab('workouts')}
             >
-              <ClipboardList size={20} className="mr-3" />
-              <span>Treinos</span>
+              <ClipboardList size={24} />
+              <span className="text-xs mt-1">Treinos</span>
             </NavLink>
             
             <NavLink 
               to="/exercises" 
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 rounded-md ${
-                  isActive ? 'bg-primary text-white' : 'text-white hover:bg-gray-800'
-                }`
+                cn(
+                  "flex flex-col items-center justify-center py-2 px-4 h-full",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                )
               }
+              onClick={() => setActiveTab('exercises')}
             >
-              <Dumbbell size={20} className="mr-3" />
-              <span>Exercícios</span>
+              <Dumbbell size={24} />
+              <span className="text-xs mt-1">Exercícios</span>
             </NavLink>
             
             <NavLink 
               to="/profile" 
               className={({ isActive }) => 
-                `flex items-center px-4 py-3 rounded-md ${
-                  isActive ? 'bg-primary text-white' : 'text-white hover:bg-gray-800'
-                }`
+                cn(
+                  "flex flex-col items-center justify-center py-2 px-4 h-full",
+                  isActive 
+                    ? "text-primary" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-primary dark:hover:text-primary"
+                )
               }
+              onClick={() => setActiveTab('profile')}
             >
-              <User size={20} className="mr-3" />
-              <span>Perfil</span>
+              <User size={24} />
+              <span className="text-xs mt-1">Perfil</span>
             </NavLink>
-          </nav>
-        </div>
-        
-        <div className="absolute bottom-8 w-full px-6">
-          <Button 
-            variant="ghost" 
-            onClick={handleLogout}
-            className="w-full justify-start text-white hover:bg-gray-800"
-          >
-            <LogOut size={20} className="mr-3" />
-            <span>Sair</span>
-          </Button>
-        </div>
-      </div>
-      
-      {/* Padding for desktop layout */}
-      <div className="hidden md:block w-64"></div>
+          </div>
+        </nav>
+      )}
     </div>
   );
 };

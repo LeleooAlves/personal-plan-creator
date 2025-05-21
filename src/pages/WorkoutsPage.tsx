@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Download } from 'lucide-react';
+import { Download, Link } from 'lucide-react';
 import { getAllWorkouts, downloadHTML, generateWorkoutHTML, getAllExercises, deleteWorkout, downloadAllWorkoutDays } from '@/utils/localStorage';
 import { Workout } from '@/utils/localStorage';
 import { useToast } from '@/hooks/use-toast';
@@ -29,26 +28,51 @@ const WorkoutsPage = () => {
     ));
   };
   
-  const handleDownload = (workout: Workout, day: string) => {
-    try {
-      const exercises = getAllExercises();
-      const html = generateWorkoutHTML(workout, day, exercises);
-      const dayName = day.charAt(0).toUpperCase() + day.slice(1);
-      const filename = `${workout.name.replace(/\s+/g, '_')}_${workout.studentName.replace(/\s+/g, '_')}_${dayName}.html`;
-      
-      downloadHTML(html, filename);
-      
+  const handleGenerateLink = (workout: Workout, day: string) => {
+    const baseUrl = 'https://seusite.com';
+    const workoutLink = `${baseUrl}/treinos/${workout.id}/${day}`;
+    
+    navigator.clipboard.writeText(workoutLink).then(() => {
       toast({
-        title: "Download iniciado!",
-        description: `O treino ${workout.name} de ${workout.studentName} (${dayName}) foi gerado com sucesso.`,
+        title: "Link do treino gerado!",
+        description: `Link copiado: ${workoutLink}`,
       });
-    } catch (error) {
+    }).catch(err => {
+      console.error('Falha ao copiar link: ', err);
       toast({
         variant: "destructive",
-        title: "Erro ao gerar arquivo",
-        description: "Ocorreu um problema ao criar o arquivo HTML.",
+        title: "Erro ao gerar link",
+        description: `Não foi possível copiar o link. Copie manualmente: ${workoutLink}`,
       });
-    }
+    });
+  };
+  
+  const handleGenerateAllLinks = (workout: Workout) => {
+    toast({
+      title: "Gerando links para todos os dias...",
+      description: "Links serão copiados para a área de transferência e mostrados em notificações.",
+    });
+
+    workout.days.forEach((day, index) => {
+      setTimeout(() => {
+        const baseUrl = 'https://seusite.com';
+        const workoutLink = `${baseUrl}/treinos/${workout.id}/${day.day}`;
+        
+        navigator.clipboard.writeText(workoutLink).then(() => {
+          toast({
+            title: `Link para ${getDayTranslation(day.day)}`,
+            description: `Link copiado: ${workoutLink}`,
+          });
+        }).catch(err => {
+          console.error('Falha ao copiar link: ', err);
+          toast({
+            variant: "destructive",
+            title: `Erro ao gerar link para ${getDayTranslation(day.day)}`,
+            description: `Não foi possível copiar o link. Copie manualmente: ${workoutLink}`,
+          });
+        });
+      }, index * 500);
+    });
   };
   
   const handleDownloadAll = async (workout: Workout) => {
@@ -178,9 +202,9 @@ const WorkoutsPage = () => {
                             variant="outline" 
                             size="sm"
                             className="gap-2"
-                            onClick={() => handleDownload(workout, day.day)}
+                            onClick={() => handleGenerateLink(workout, day.day)}
                           >
-                            <Download size={16} />
+                            <Link size={16} />
                             {getDayTranslation(day.day)}
                           </Button>
                         ))}
@@ -193,10 +217,10 @@ const WorkoutsPage = () => {
                       variant="default"
                       size="sm" 
                       className="w-full"
-                      onClick={() => handleDownloadAll(workout)}
+                      onClick={() => handleGenerateAllLinks(workout)}
                     >
-                      <Download size={16} className="mr-2" />
-                      Baixar Todos os Treinos
+                      <Link size={16} className="mr-2" />
+                      Gerar Links para Todos os Treinos
                     </Button>
                   </CardFooter>
                 </Card>

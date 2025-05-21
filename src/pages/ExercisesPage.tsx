@@ -37,7 +37,15 @@ const ExercisesPage = () => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      ...(name === 'videoUrl' && {
+        videoType: value.includes('youtube.com') || value.includes('youtu.be') 
+          ? 'youtube' 
+          : value.includes('drive.google.com') 
+            ? 'drive' 
+            : undefined,
+        videoFile: undefined
+      })
     }));
   };
   
@@ -46,21 +54,12 @@ const ExercisesPage = () => {
     if (!file) return;
     
     try {
-      // Check file size (limit to 10MB to prevent localStorage quota issues)
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          variant: "destructive",
-          title: "Arquivo muito grande",
-          description: "O tamanho máximo permitido é 10MB para evitar problemas de armazenamento."
-        });
-        return;
-      }
-      
       const base64Video = await fileToBase64(file);
       setFormData(prev => ({
         ...prev,
         videoFile: base64Video,
-        videoUrl: '' // Clear URL when file is uploaded
+        videoUrl: '',
+        videoType: 'file'
       }));
       
       toast({
@@ -229,11 +228,11 @@ const ExercisesPage = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <Label className="block text-center mb-2">Vídeo</Label>
                   <Tabs value={videoUploadType} onValueChange={(val) => setVideoUploadType(val as 'url' | 'file')}>
                     <TabsList className="grid grid-cols-2 w-full">
-                      <TabsTrigger value="url">URL (YouTube/Vimeo)</TabsTrigger>
+                      <TabsTrigger value="url">URL (YouTube/Drive)</TabsTrigger>
                       <TabsTrigger value="file">Upload de Arquivo</TabsTrigger>
                     </TabsList>
                     
@@ -248,9 +247,12 @@ const ExercisesPage = () => {
                           value={formData.videoUrl}
                           onChange={handleInputChange}
                           className="col-span-3"
-                          placeholder="YouTube ou Vimeo URL"
+                          placeholder="YouTube ou Google Drive URL"
                         />
                       </div>
+                      <p className="text-sm text-muted-foreground text-center">
+                        Cole a URL do YouTube ou Google Drive do vídeo
+                      </p>
                     </TabsContent>
                     
                     <TabsContent value="file" className="space-y-4 pt-4">
@@ -265,7 +267,7 @@ const ExercisesPage = () => {
                               <p className="mb-2 text-sm text-gray-500">
                                 <span className="font-semibold">Clique para fazer upload</span> ou arraste o arquivo
                               </p>
-                              <p className="text-xs text-gray-500">MP4, WebM, Ogg (Máx. 30MB)</p>
+                              <p className="text-xs text-gray-500">MP4, WebM, Ogg</p>
                             </div>
                             <Input 
                               id="videoFile" 
@@ -322,30 +324,47 @@ const ExercisesPage = () => {
               
               {hasVideo(exercise) && (
                 <CardContent className="p-0">
-                  <div className="aspect-video bg-black relative">
-                    {exercise.videoFile ? (
+                  <div className="relative aspect-video">
+                    {exercise.videoType === 'file' && exercise.videoFile ? (
                       <video 
                         src={exercise.videoFile} 
                         controls 
+                        playsInline
                         className="w-full h-full object-contain"
                       />
-                    ) : (
-                      <a
-                        href={exercise.videoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="absolute inset-0 flex items-center justify-center"
-                      >
-                        <img
-                          src={getVideoThumbnail(exercise)}
-                          alt={exercise.name}
-                          className="w-full h-full object-cover"
+                    ) : exercise.videoUrl ? (
+                      <>
+                        <iframe
+                          src={getEmbedUrl(exercise.videoUrl)}
+                          className="w-full h-full"
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                          <ExternalLink className="text-white w-10 h-10" />
+                        <div className="absolute bottom-2 right-2 flex gap-2">
+                          {exercise.videoType === 'youtube' && (
+                            <a
+                              href={exercise.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-red-600 text-white px-2 py-1 rounded text-sm hover:bg-red-700 transition-colors"
+                            >
+                              YouTube
+                            </a>
+                          )}
+                          {exercise.videoType === 'drive' && (
+                            <a
+                              href={exercise.videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="bg-blue-600 text-white px-2 py-1 rounded text-sm hover:bg-blue-700 transition-colors"
+                            >
+                              Drive
+                            </a>
+                          )}
                         </div>
-                      </a>
-                    )}
+                      </>
+                    ) : null}
                   </div>
                 </CardContent>
               )}

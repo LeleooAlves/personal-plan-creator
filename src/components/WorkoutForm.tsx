@@ -173,7 +173,7 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
   };
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6 pb-20 md:pb-6">
       <div className="grid gap-4">
         <div className="space-y-2">
           <Label htmlFor="workoutName">Nome do Treino</Label>
@@ -219,51 +219,52 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
         </div>
       </div>
       
-      {selectedDays.length > 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <div className="relative">
-                <TabsList className="mb-4 overflow-x-auto flex flex-nowrap w-full justify-start pb-1">
-                  {selectedDays.map(day => {
-                    const dayLabel = DAYS_OF_WEEK.find(d => d.id === day)?.label || day;
-                    return (
-                      <TabsTrigger 
-                        key={day} 
-                        value={day}
-                        className="flex-shrink-0"
-                      >
-                        {dayLabel}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </div>
-              
-              {selectedDays.map(day => (
-                <TabsContent key={day} value={day} className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-medium">
-                      Exercícios para {DAYS_OF_WEEK.find(d => d.id === day)?.label}
-                    </h3>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => handleAddExercise(day)}
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="relative">
+              <TabsList className="mb-4 overflow-x-auto flex flex-nowrap w-full justify-start pb-1">
+                {selectedDays.map(day => {
+                  const dayLabel = DAYS_OF_WEEK.find(d => d.id === day)?.label || day;
+                  return (
+                    <TabsTrigger 
+                      key={day} 
+                      value={day}
+                      className="flex-shrink-0"
                     >
-                      Adicionar Exercício
-                    </Button>
-                  </div>
-                  
-                  {workoutPlan[day].length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">
-                      Nenhum exercício adicionado. Clique em "Adicionar Exercício".
-                    </p>
-                  ) : (
-                    <div className="space-y-4">
-                      {workoutPlan[day].map((exercise, index) => (
-                        <div key={index} className={`grid gap-3 p-3 border rounded-md ${isMobile ? 'grid-cols-1' : 'grid-cols-12 items-end'}`}>
-                          <div className={isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-6'}>
+                      {dayLabel}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </div>
+            
+            {selectedDays.map(day => (
+              <TabsContent key={day} value={day} className="space-y-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <h3 className="text-lg font-medium">
+                    Exercícios para {DAYS_OF_WEEK.find(d => d.id === day)?.label}
+                  </h3>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => handleAddExercise(day)}
+                    className="w-full sm:w-auto"
+                  >
+                    Adicionar Exercício
+                  </Button>
+                </div>
+                
+                {workoutPlan[day].length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    Nenhum exercício adicionado. Clique em "Adicionar Exercício".
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {workoutPlan[day].map((exercise, index) => (
+                      <div key={index} className="grid gap-3 p-3 border rounded-md">
+                        <div className="grid gap-3 sm:grid-cols-12">
+                          <div className="sm:col-span-6">
                             <Label htmlFor={`exercise-${day}-${index}`}>Exercício</Label>
                             <Select
                               value={exercise.exerciseId}
@@ -282,56 +283,55 @@ const WorkoutForm = ({ onWorkoutCreated }: WorkoutFormProps) => {
                             </Select>
                           </div>
                           
-                          <div className={`grid grid-cols-2 gap-3 ${isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-4'}`}>
-                            <div>
-                              <Label htmlFor={`sets-${day}-${index}`}>Séries</Label>
-                              <Input
-                                id={`sets-${day}-${index}`}
-                                type="number"
-                                min="1"
-                                value={exercise.sets}
-                                onChange={(e) => handleExerciseChange(day, index, 'sets', parseInt(e.target.value) || 1)}
-                              />
-                            </div>
-                            
-                            <div>
-                              <Label htmlFor={`reps-${day}-${index}`}>Repetições</Label>
-                              <Input
-                                id={`reps-${day}-${index}`}
-                                type="number"
-                                min="1"
-                                value={exercise.reps}
-                                onChange={(e) => handleExerciseChange(day, index, 'reps', parseInt(e.target.value) || 1)}
-                              />
-                            </div>
+                          <div className="sm:col-span-3">
+                            <Label htmlFor={`sets-${day}-${index}`}>Séries</Label>
+                            <Input
+                              id={`sets-${day}-${index}`}
+                              type="number"
+                              min="1"
+                              value={exercise.sets}
+                              onChange={(e) => handleExerciseChange(day, index, 'sets', parseInt(e.target.value) || 1)}
+                            />
                           </div>
                           
-                          <div className={isMobile ? 'col-span-1' : 'col-span-12 sm:col-span-2'}>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="w-full"
-                              onClick={() => handleRemoveExercise(day, index)}
-                            >
-                              Remover
-                            </Button>
+                          <div className="sm:col-span-3">
+                            <Label htmlFor={`reps-${day}-${index}`}>Repetições</Label>
+                            <Input
+                              id={`reps-${day}-${index}`}
+                              type="number"
+                              min="1"
+                              value={exercise.reps}
+                              onChange={(e) => handleExerciseChange(day, index, 'reps', parseInt(e.target.value) || 1)}
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
+                        
+                        <div className="flex justify-end">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveExercise(day, index)}
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+            ))}
+          </Tabs>
+        </CardContent>
+      </Card>
       
-      <div className="flex justify-end">
-        <Button type="submit" className="w-full sm:w-auto">
-          Salvar Treino
-        </Button>
+      <div className="sticky bottom-0 left-0 right-0 bg-background border-t border-border p-4 -mx-4 mt-6 md:static md:border-0 md:p-0 md:mx-0">
+        <div className="container mx-auto max-w-7xl">
+          <Button type="submit" className="w-full md:w-auto">
+            Salvar Treino
+          </Button>
+        </div>
       </div>
     </form>
   );
