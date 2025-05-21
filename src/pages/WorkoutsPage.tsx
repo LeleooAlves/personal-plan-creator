@@ -29,7 +29,7 @@ const WorkoutsPage = () => {
   };
   
   const handleGenerateLink = (workout: Workout, day: string) => {
-    const baseUrl = 'https://seusite.com';
+    const baseUrl = 'https://treinos-wine.vercel.app';
     const workoutLink = `${baseUrl}/treinos/${workout.id}/${day}`;
     
     navigator.clipboard.writeText(workoutLink).then(() => {
@@ -55,7 +55,7 @@ const WorkoutsPage = () => {
 
     workout.days.forEach((day, index) => {
       setTimeout(() => {
-        const baseUrl = 'https://seusite.com';
+        const baseUrl = 'https://treinos-wine.vercel.app';
         const workoutLink = `${baseUrl}/treinos/${workout.id}/${day.day}`;
         
         navigator.clipboard.writeText(workoutLink).then(() => {
